@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";  
+import QRCode from "qrcode";
 
 export default function MyBookings() {
   const [bookings, setBookings] = useState([]);
@@ -22,7 +25,6 @@ export default function MyBookings() {
         setBookings(res.data);
       } catch (err) {
         setError(err.response?.data?.msg || "Failed to load bookings");
-        console.error(err);
       } finally {
         setLoading(false);
       }
@@ -31,56 +33,148 @@ export default function MyBookings() {
     fetchBookings();
   }, []);
 
+  // Convert /logo.png to Base64 for PDF
+  function toDataUrl(url) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = "Anonymous";
+      img.onload = function () {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0);
+        resolve(canvas.toDataURL("image/png"));
+      };
+      img.onerror = reject;
+      img.src = url;
+    });
+  }
+
+  // === Generate Ticket PDF ===
+  const downloadTicket = async (booking) => {
+    try {
+      const doc = new jsPDF();
+
+      // Add logo
+      try {
+        const logo = await toDataUrl("/public/reserve.jpg");
+        doc.addImage(logo, "PNG", 150, 10, 40, 18);
+      // eslint-disable-next-line no-unused-vars
+      } catch (err) {
+        console.warn("Logo missing or failed to load.");
+      }
+
+      let y = 30;
+
+      // Header
+      doc.setFontSize(20);
+      doc.text("BusGo - Bus Ticket", 20, y);
+      y += 12;
+
+      // Ticket Details
+      doc.setFontSize(12);
+      doc.text(`Booking ID: ${booking._id}`, 20, y); y += 10;
+      doc.text(`Bus Name: ${booking.bus?.name || "-"}`, 20, y); y += 10;
+      doc.text(`Route: ${booking.bus?.route || "-"}`, 20, y); y += 10;
+      doc.text(`Departure: ${booking.bus?.date || "-"} ${booking.bus?.departureTime || "-"}`, 20, y); y += 10;
+      doc.text(`Seats: ${booking.seats?.join(", ")}`, 20, y); y += 10;
+      doc.text(`Amount: Rs.${booking.amount}`, 20, y); y += 10;
+      doc.text(`Status: ${booking.status}`, 20, y); y += 10;
+      doc.text(`Booked On: ${new Date(booking.createdAt).toLocaleString()}`, 20, y);
+
+      // FULL TICKET DETAILS TEXT for QR
+      const qrText = `
+BusGo Ticket
+Booking ID: ${booking._id}
+Bus Name: ${booking.bus?.name || "-"}
+Route: ${booking.bus?.route || "-"}
+Departure: ${booking.bus?.date || "-"} ${booking.bus?.departureTime || "-"}
+Seats: ${booking.seats?.join(", ") || "-"}
+Amount: Rs.${booking.amount}
+Status: ${booking.status}
+Booked On: ${new Date(booking.createdAt).toLocaleString()}
+      `;
+
+      // Add QR Code with full ticket details
+      try {
+        const qrData = await QRCode.toDataURL(qrText);
+        doc.addImage(qrData, "PNG", 150, 50, 40, 40);
+      } catch {
+        console.warn("QR Code failed.");
+      }
+
+      // autoTable (Vite compatible)
+      autoTable(doc, {
+        startY: y + 12,
+        styles: { fontSize: 10 },
+        head: [["#", "Field", "Value"]],
+        body: [
+          [1, "Bus Name", booking.bus?.name || "-"],
+          [2, "Route", booking.bus?.route || "-"],
+          [3, "Seats", booking.seats?.join(", ") || "-"],
+          [4, "Amount", `Rs.${booking.amount}`],
+          [5, "Status", booking.status],
+          [6, "Booked On", new Date(booking.createdAt).toLocaleString()]
+        ],
+      });
+
+      doc.save(`Ticket_${booking._id}.pdf`);
+    } catch (err) {
+      alert("PDF Error: " + err.message);
+      console.error(err);
+    }
+  };
+
   if (loading) return <div className="text-center p-4">Loading bookings...</div>;
 
   return (
-    <div className="max-w-4xl mx-auto p-4">
-      <h2 className="text-2xl font-bold mb-4">My Bookings</h2>
-      
-      {error && <div className="text-red-600 p-3 bg-red-100 rounded mb-4">{error}</div>}
-      
-      {bookings.length === 0 ? (
-        <div className="text-center text-gray-600 p-4 bg-gray-100 rounded">
-          No bookings yet.
-        </div>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse border">
-            <thead className="bg-blue-500 text-white">
-              <tr>
-                <th className="border p-3 text-left">Bus Name</th>
-                <th className="border p-3 text-left">Route</th>
-                <th className="border p-3 text-left">Seats</th>
-                <th className="border p-3 text-left">Amount</th>
-                <th className="border p-3 text-left">Status</th>
-                <th className="border p-3 text-left">Booking Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              {bookings.map(booking => (
-                <tr key={booking._id} className="hover:bg-gray-100">
-                  <td className="border p-3">{booking.bus?.name || "-"}</td>
-                  <td className="border p-3">{booking.bus?.route || "-"}</td>
-                  <td className="border p-3">{booking.seats?.join(", ") || "-"}</td>
-                  <td className="border p-3">Rs.{booking.amount}</td>
-                  <td className="border p-3">
-                    <span className={`px-3 py-1 rounded text-white ${
-                      booking.status === "confirmed" ? "bg-green-500" : 
-                      booking.status === "cancelled" ? "bg-red-500" : 
-                      "bg-yellow-500"
-                    }`}>
-                      {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
-                    </span>
-                  </td>
-                  <td className="border p-3">
-                    {new Date(booking.createdAt).toLocaleDateString()}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+    <div className="max-w-6xl mx-auto p-4">
+      <h2 className="text-3xl font-bold mb-6 text-blue-800">My Bookings</h2>
+
+      {error && (
+        <div className="bg-red-100 text-red-700 p-3 rounded">
+          {error}
         </div>
       )}
+
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse shadow-md rounded-xl overflow-hidden">
+          <thead className="bg-blue-600 text-white">
+            <tr>
+              <th className="p-4 text-left">Bus Name</th>
+              <th className="p-4 text-left">Route</th>
+              <th className="p-4 text-left">Seats</th>
+              <th className="p-4 text-left">Amount</th>
+              <th className="p-4 text-left">Status</th>
+              <th className="p-4 text-left">Date</th>
+              <th className="p-4 text-left">Ticket</th>
+            </tr>
+          </thead>
+          <tbody>
+            {bookings.map((b) => (
+              <tr key={b._id} className="hover:bg-blue-50 transition">
+                <td className="border-b p-4">{b.bus?.name}</td>
+                <td className="border-b p-4">{b.bus?.route}</td>
+                <td className="border-b p-4">{b.seats?.join(", ")}</td>
+                <td className="border-b p-4">Rs.{b.amount}</td>
+                <td className="border-b p-4">{b.status}</td>
+                <td className="border-b p-4">
+                  {new Date(b.createdAt).toLocaleDateString()}
+                </td>
+                <td className="border-b p-4">
+                  <button
+                    onClick={() => downloadTicket(b)}
+                    className="bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-800"
+                  >
+                    Download PDF
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

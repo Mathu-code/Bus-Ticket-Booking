@@ -28,6 +28,16 @@ export default function Register() {
           {loading ? "Registering..." : "Register"}
         </button>
       </form>
+      <p className="text-center mt-4">
+        Already have an account?{" "}
+        <button
+          type="button"
+          onClick={() => navigate("/login")}
+          className="text-blue-600 font-semibold hover:underline"
+        >
+          Login
+        </button>
+      </p>
       {success && <div className="text-green-600">{success}</div>}
     </div>
   );
