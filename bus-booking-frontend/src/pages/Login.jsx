@@ -13,7 +13,7 @@ export default function Login() {
   const handleSubmit = async e => {
     e.preventDefault();
     const res = await dispatch(loginUser(form));
-    if (!res.error) navigate("/");
+    if (!res.error) navigate("/bus-search");
   };
 
   return (
@@ -27,6 +27,16 @@ export default function Login() {
           {loading ? "Logging in..." : "Login"}
         </button>
       </form>
+      <p className="text-center mt-4">
+        Don't have an account?{" "}
+        <button
+          type="button"
+          onClick={() => navigate("/register")}
+          className="text-blue-600 font-semibold hover:underline"
+        >
+          Register
+        </button>
+      </p>
     </div>
   );
 }

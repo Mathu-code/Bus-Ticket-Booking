@@ -1,12 +1,12 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import axios from "axios";
-import SelectPlaceMap from "../components/SelectPlaceMap";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
 import StripeCheckout from "../components/StripeCheckout";
+import LocationPicker from "../components/LocationPicker";
 
-const stripePromise = loadStripe("pk_test_51234567890abcdefghij"); // Replace with your Stripe publishable key
+const stripePromise = loadStripe("pk_test_TYooMQauvdEDq54NiTphI7jx");
 
 export default function BookBus() {
   const { id } = useParams();
@@ -15,8 +15,9 @@ export default function BookBus() {
   const [seats, setSeats] = useState([]);
   const [location, setLocation] = useState(null);
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  //const [loading, setLoading] = useState(false);
 
+  // Fetch bus details
   useEffect(() => {
     const fetchBus = async () => {
       try {
@@ -30,47 +31,20 @@ export default function BookBus() {
     fetchBus();
   }, [id]);
 
+  // Seat selection logic
   const handleSeatChange = (e) => {
     const value = Number(e.target.value);
     setSeats(seats.includes(value) ? seats.filter(s => s !== value) : [...seats, value]);
   };
 
-  const handleBook = async () => {
-    setError("");
-    if (!seats.length || !location) {
-      setError("Select at least one seat and location.");
-      return;
-    }
+  // Handle location selection
+  const handleLocationSelect = (selectedLocation) => {
+    setLocation(selectedLocation);
+  };
 
-    const token = localStorage.getItem("token");
-    if (!token) {
-      setError("Please login first");
-      navigate("/login");
-      return;
-    }
-
-    try {
-      setLoading(true);
-      await axios.post(
-        "http://localhost:5000/api/bookings",
-        {
-          busId: bus._id,
-          seats,
-          amount: bus.price * seats.length,
-          location: {
-            type: "Point",
-            coordinates: [location.lng, location.lat],
-          }
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      navigate("/my-bookings");
-    } catch (err) {
-      setError(err.response?.data?.msg || "Booking failed.");
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+  // Handle successful booking
+  const handleBookSuccess = () => {
+    navigate("/my-bookings");
   };
 
   if (!bus) return <div className="text-center p-4">Loading...</div>;
@@ -113,15 +87,7 @@ export default function BookBus() {
         </div>
       </div>
 
-      <div className="mb-4">
-        <div className="font-bold mb-2">Select boarding place on map:</div>
-        <SelectPlaceMap onSelect={setLocation} />
-        {location && (
-          <div className="text-sm text-gray-600">
-            Selected: {location.lat.toFixed(4)}, {location.lng.toFixed(4)}
-          </div>
-        )}
-      </div>
+      <LocationPicker onLocationSelect={handleLocationSelect} location={location} />
 
       {seats.length > 0 && (
         <div className="mb-4 p-3 bg-gray-100 rounded">
@@ -131,18 +97,20 @@ export default function BookBus() {
       )}
 
       {!seats.length || !location ? (
-        <button className="bg-gray-300 text-gray-700 px-4 py-2 rounded w-full cursor-not-allowed" disabled>
-          Select seats and location to proceed
+        <button 
+          className="bg-gray-300 text-gray-700 px-4 py-2 rounded w-full cursor-not-allowed" 
+          disabled
+        >
+          {!seats.length ? "Select seats" : "Select location"} to proceed
         </button>
       ) : (
         <Elements stripe={stripePromise}>
           <StripeCheckout
             amount={totalPrice}
-            onSuccess={handleBook}
+            onSuccess={handleBookSuccess}
             busId={id}
             seats={seats}
             location={location}
-            loading={loading}
           />
         </Elements>
       )}

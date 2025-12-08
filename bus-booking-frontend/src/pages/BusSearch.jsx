@@ -8,7 +8,46 @@ export default function BusSearch() {
   const [date, setDate] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const navigate = useNavigate();
+
+  // Fetch all unique routes for suggestions
+  const fetchRouteSuggestions = async (searchTerm) => {
+    if (searchTerm.trim() === "") {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    try {
+      const res = await axios.get("http://localhost:5000/api/buses");
+      const allBuses = res.data;
+      
+      // Extract unique routes and filter based on search term
+      const uniqueRoutes = [...new Set(allBuses.map(bus => bus.route))];
+      const filtered = uniqueRoutes.filter(r => 
+        r.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      
+      setSuggestions(filtered);
+      setShowSuggestions(true);
+    } catch (err) {
+      console.error("Error fetching suggestions:", err);
+    }
+  };
+
+  const handleRouteChange = (e) => {
+    const value = e.target.value;
+    setRoute(value);
+    fetchRouteSuggestions(value);
+  };
+
+  const handleSuggestionClick = (suggestion) => {
+    setRoute(suggestion);
+    setSuggestions([]);
+    setShowSuggestions(false);
+  };
 
   const handleSearch = async (e) => {
     e.preventDefault();
@@ -22,6 +61,10 @@ export default function BusSearch() {
       
       const res = await axios.get("http://localhost:5000/api/buses", { params });
       setBuses(res.data);
+      
+      if (res.data.length === 0) {
+        setError("No buses found for your search criteria.");
+      }
     } catch (err) {
       setError("Failed to fetch buses. Please try again.");
       console.error(err);
@@ -39,12 +82,28 @@ export default function BusSearch() {
       <h1 className="text-2xl font-bold mb-4">Search Buses</h1>
       
       <form className="flex gap-2 mb-4" onSubmit={handleSearch}>
-        <input 
-          className="border p-2 flex-1" 
-          placeholder="Route" 
-          value={route} 
-          onChange={e => setRoute(e.target.value)} 
-        />
+        <div className="flex-1 relative">
+          <input 
+            className="border p-2 w-full" 
+            placeholder="Enter route (e.g. Colombo-Kandy)" 
+            value={route} 
+            onChange={handleRouteChange}
+            autoComplete="off"
+          />
+          {showSuggestions && suggestions.length > 0 && (
+            <div className="absolute top-full left-0 right-0 bg-white border border-t-0 rounded-b z-10 max-h-48 overflow-y-auto">
+              {suggestions.map((suggestion, index) => (
+                <div
+                  key={index}
+                  onClick={() => handleSuggestionClick(suggestion)}
+                  className="p-2 hover:bg-blue-100 cursor-pointer border-b last:border-b-0"
+                >
+                  {suggestion}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
         <input 
           className="border p-2" 
           type="date" 

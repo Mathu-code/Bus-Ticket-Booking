@@ -12,23 +12,24 @@ const initializeStripe = () => {
   return stripe;
 };
 
-// Create PaymentIntent
 export const createPaymentIntent = async (req, res) => {
   try {
     const stripeInstance = initializeStripe();
     const { amount, currency = "usd" } = req.body;
     
-    if (!amount) {
-      return res.status(400).json({ msg: "Amount is required" });
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ msg: "Valid amount is required" });
     }
 
     const intent = await stripeInstance.paymentIntents.create({
-      amount: Math.round(amount * 100),
+      amount: Math.round(amount),
       currency: currency,
       metadata: { integration_check: "accept_a_payment" }
     });
+
     res.json({ clientSecret: intent.client_secret });
   } catch (err) {
-    res.status(500).json({ msg: err.message });
+    console.error("Payment error:", err);
+    res.status(500).json({ msg: err.message || "Payment initialization failed" });
   }
 };
