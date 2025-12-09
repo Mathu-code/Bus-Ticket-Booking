@@ -14,7 +14,19 @@ export default function Header() {
 
   return (
     <header className="bg-blue-900 text-white flex items-center justify-between px-6 py-3 shadow">
-      <div className="font-bold text-2xl cursor-pointer" onClick={() => navigate("/")}>BusGo</div>
+      <div
+        className="flex items-center gap-2 font-bold text-2xl cursor-pointer"
+        onClick={() => navigate("/")}
+      >
+        {/* Logo image (make sure /logo.png exists in public/) */}
+        <img
+          src="/Bus3.png"
+          alt="BusGo Logo"
+          className="h-9 w-9 object-contain mr-1"
+          style={{ borderRadius: 6 }}
+        />
+        <span>BusGo</span>
+      </div>
       <nav className="flex items-center gap-6">
         {!user && (
           <>
