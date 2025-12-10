@@ -13,7 +13,7 @@ export default function Login() {
   const handleSubmit = async e => {
     e.preventDefault();
     const res = await dispatch(loginUser(form));
-    if (!res.error) navigate("/bus-search");
+    if (!res.error) navigate("/");
   };
 
   return (
