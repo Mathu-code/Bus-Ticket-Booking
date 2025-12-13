@@ -1,9 +1,13 @@
 import express from "express";
-import { createBus, getBuses, getBus } from "../controllers/busController.js";
-// Add admin middleware for createBus if needed
+import { createBus, getBuses, getBus, updateBus,deleteBus } from "../controllers/busController.js";
+import { requireAdmin } from "../middleware/adminMiddleware.js";
+import { protect } from "../middleware/authMiddleware.js";
 const router = express.Router();
 
-router.post("/", createBus); // TODO: protect with admin middleware
+// Protect create/update/delete with both protect and requireAdmin
+router.post("/", protect, requireAdmin, createBus);
+router.put("/:id", protect, requireAdmin, updateBus);
+router.delete("/:id", protect, requireAdmin, deleteBus);
 router.get("/", getBuses);
 router.get("/:id", getBus);
 
