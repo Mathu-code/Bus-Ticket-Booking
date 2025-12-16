@@ -1,32 +1,49 @@
+// src/pages/ResetPassword.jsx
 import { useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { registerUser } from "../redux/authSlice";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
-export default function Register() {
-  const dispatch = useDispatch();
+export default function ResetPassword() {
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [error, setError] = useState("");
   const navigate = useNavigate();
-  const { loading, error } = useSelector(state => state.auth);
 
-  const [form, setForm] = useState({
-    name: "",
-    email: "",
-    password: "",
-  });
-
-  const handleChange = (e) =>
-    setForm({ ...form, [e.target.name]: e.target.value });
+  // 🔥 Get token from sessionStorage (set by VerifyOtp)
+  const token = sessionStorage.getItem("resetToken");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const res = await dispatch(registerUser(form));
-    if (!res.error) navigate("/login");
+    if (password !== confirm) {
+      setError("Passwords do not match");
+      return;
+    }
+    try {
+      setLoading(true);
+      setError("");
+      const res = await axios.post(
+        "http://localhost:5000/api/auth/reset-password",
+        { token, password }
+      );
+      setMsg(res.data.msg);
+      // Optionally clear session after reset
+      sessionStorage.removeItem("resetEmail");
+      sessionStorage.removeItem("resetToken");
+      setTimeout(() => {
+        navigate("/login");
+      }, 1500);
+    } catch (err) {
+      setError(err.response?.data?.msg || "Reset failed");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="min-h-[calc(100vh-140px)] flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100">
       <div className="w-full max-w-md bg-white shadow-2xl rounded-2xl px-8 py-10">
-        
         {/* Header */}
         <div className="flex flex-col items-center mb-6">
           <img
@@ -35,10 +52,10 @@ export default function Register() {
             className="h-16 w-16 object-contain mb-2 rounded"
           />
           <h2 className="text-3xl font-extrabold text-blue-900 mb-1">
-            Create Account
+            Reset Password
           </h2>
-          <p className="text-blue-500 text-sm">
-            Join BusGo and book your journey with ease
+          <p className="text-blue-500 text-sm text-center">
+            Enter a new password for your account below
           </p>
         </div>
 
@@ -49,67 +66,51 @@ export default function Register() {
           </div>
         )}
 
-        {/* Form */}
+        {/* Success */}
+        {msg && (
+          <div className="bg-green-100 border border-green-300 text-green-700 p-2 rounded mb-3 text-center text-sm">
+            {msg}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label className="block text-blue-900 mb-1 font-medium">
-                Name
-            </label>
-            <input
-              type="text"
-              name="name"
-              placeholder="Your name"
-              value={form.name}
-              required
-              onChange={handleChange}
-              className="w-full p-3 rounded-lg border border-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
-            />
-          </div>
-
-          <div>
-            <label className="block text-blue-900 mb-1 font-medium">
-              Email Address
-            </label>
-            <input
-              type="email"
-              name="email"
-              placeholder="you@email.com"
-              value={form.email}
-              required
-              onChange={handleChange}
-              className="w-full p-3 rounded-lg border border-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
-            />
-          </div>
-
-          <div>
-            <label className="block text-blue-900 mb-1 font-medium">
-              Password
+              New Password
             </label>
             <input
               type="password"
-              name="password"
-              placeholder="Create a password"
-              value={form.password}
-              required
-              onChange={handleChange}
+              placeholder="New Password"
               className="w-full p-3 rounded-lg border border-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              required
             />
           </div>
-
+          <div>
+            <label className="block text-blue-900 mb-1 font-medium">
+              Confirm Password
+            </label>
+            <input
+              type="password"
+              placeholder="Confirm Password"
+              className="w-full p-3 rounded-lg border border-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+              value={confirm}
+              onChange={e => setConfirm(e.target.value)}
+              required
+            />
+          </div>
           <button
-            type="submit"
             disabled={loading}
             className={`w-full py-3 rounded-lg font-bold text-white transition bg-blue-700 hover:bg-blue-800 active:bg-blue-900 shadow-md ${
               loading ? "opacity-70 cursor-not-allowed" : ""
             }`}
           >
-            {loading ? "Creating account..." : "Register"}
+            {loading ? "Resetting..." : "Reset Password"}
           </button>
         </form>
-
-        {/* Footer */}
         <div className="text-center mt-6 text-sm text-blue-700">
-          Already have an account?{" "}
+          Remembered?{" "}
           <button
             type="button"
             onClick={() => navigate("/login")}

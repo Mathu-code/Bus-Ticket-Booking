@@ -1,12 +1,15 @@
 import express from "express";
 // ...existing code...
-import { register, login, getUsers, getUserById, updateUser, deleteUser, toggleAdminStatus } from "../controllers/authController.js";
+import { register, login, getUsers, getUserById, updateUser, deleteUser, toggleAdminStatus, sendOtp, verifyOtp, resetPassword  } from "../controllers/authController.js";
 import { requireAdmin } from "../middleware/adminMiddleware.js";
 import { protect } from "../middleware/authMiddleware.js";
 const router = express.Router();
 
 router.post("/register", register);
 router.post("/login", login);
+router.post("/send-otp", sendOtp);
+router.post("/verify-otp", verifyOtp);
+router.post("/reset-password", resetPassword);
 
 // Admin-specific routes
 router.get("/admin/users", protect, requireAdmin, getUsers);

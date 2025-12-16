@@ -2,7 +2,8 @@
 import User from "../models/User.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-
+import crypto from "crypto";
+import nodemailer from "nodemailer";
 // Register
 export const register = async (req, res) => {
   try {
@@ -158,4 +159,81 @@ export const toggleAdminStatus = async (req, res) => {
   } catch (err) {
     res.status(500).json({ msg: err.message });
   }
+};
+
+// Send OTP
+export const sendOtp = async (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ msg: "Email is required" });
+
+  const user = await User.findOne({ email });
+  if (!user) return res.status(200).json({ msg: "If this email is registered, you will receive an OTP." });
+
+  // Generate OTP
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  user.otpCode = otp;
+  user.otpExpire = Date.now() + 1000 * 60 * 10; // 10 min
+  await user.save();
+
+  // Send OTP via email
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: "mathumathuran27@gmail.com", // use your gmail/app-password
+      pass: "cgue leum hghr hhqd"
+    }
+  });
+
+  await transporter.sendMail({
+    from: '"BusGo" <yourgmail@gmail.com>',
+    to: email,
+    subject: "BusGo Password Reset OTP",
+    html: `
+      <h2>OTP for Password Reset</h2>
+      <p>Your OTP is: <b>${otp}</b></p>
+      <p>This OTP is valid for 10 minutes.</p>
+    `
+  });
+
+  return res.status(200).json({ msg: "OTP sent to your email address." });
+};
+
+// Verify OTP and return token
+export const verifyOtp = async (req, res) => {
+  const { email, otp } = req.body;
+  const user = await User.findOne({ email, otpCode: otp, otpExpire: { $gt: Date.now() } });
+  if (!user) return res.status(400).json({ msg: "Invalid or expired OTP" });
+
+  // Generate reset token (can use JWT or random string)
+  const resetToken = crypto.randomBytes(32).toString("hex");
+  user.resetToken = crypto.createHash("sha256").update(resetToken).digest("hex");
+  user.resetTokenExpire = Date.now() + 1000 * 60 * 15; // 15 min
+  // Clear OTP
+  user.otpCode = undefined;
+  user.otpExpire = undefined;
+  await user.save();
+
+  // Send the token to frontend (do NOT email it)
+  res.json({ token: resetToken });
+};
+
+// Reset password using reset token
+export const resetPassword = async (req, res) => {
+  const { token, password } = req.body;
+  if (!password || !token) return res.status(400).json({ msg: "Missing info" });
+
+  const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+  const user = await User.findOne({
+    resetToken: hashedToken,
+    resetTokenExpire: { $gt: Date.now() }
+  });
+
+  if (!user) return res.status(400).json({ msg: "Invalid or expired token" });
+
+  user.password = await bcrypt.hash(password, 10);
+  user.resetToken = undefined;
+  user.resetTokenExpire = undefined;
+  await user.save();
+
+  res.json({ msg: "Password reset successful. Please login." });
 };
