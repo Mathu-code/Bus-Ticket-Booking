@@ -1,13 +1,23 @@
-# Backend
-bus-booking-backend/node_modules/
-bus-booking-backend/.env
-
-# Frontend
-bus-booking-frontend/node_modules/
-bus-booking-frontend/dist/
-
-# Logs
-npm-debug.log*
-
-# OS
+node_modules
+node_modules/
 .DS_Store
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+dist
+build
+.vscode
+
+.idea
+*.log
+coverage
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnp
+.pnp.js
+.cache
+.next
+    
