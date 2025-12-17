@@ -24,3 +24,4 @@ const bookingSchema = new mongoose.Schema({
 bookingSchema.index({ location: "2dsphere" });
 
 export default mongoose.model("Booking", bookingSchema);
+
