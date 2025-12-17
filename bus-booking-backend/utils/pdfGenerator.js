@@ -36,7 +36,7 @@ export const generateBookingPdf = (bookingDetails) => { // Removed 'stream' para
   doc.fontSize(12)
      .font('Helvetica')
      .fillColor('#666')
-     .text(`Seats Booked: ${bookingDetails.seats.join(', ')}`);
+     .text(`Booked Seat No: ${bookingDetails.seats.join(', ')}`);
   doc.text(`Total Amount: Rs. ${bookingDetails.amount.toFixed(2)}`);
   doc.text(`Payment Status: ${bookingDetails.paymentStatus.charAt(0).toUpperCase() + bookingDetails.paymentStatus.slice(1)}`);
   doc.text(`Booking Status: ${bookingDetails.status.charAt(0).toUpperCase() + bookingDetails.status.slice(1)}`);
