@@ -1,10 +1,10 @@
 # Backend
-backend/node_modules/
-backend/.env
+bus-booking-backend/node_modules/
+bus-booking-backend/.env
 
 # Frontend
-frontend/node_modules/
-frontend/dist/
+bus-booking-frontend/node_modules/
+bus-booking-frontend/dist/
 
 # Logs
 npm-debug.log*
