@@ -16,7 +16,7 @@ const transporter = nodemailer.createTransport({
 export const sendBookingConfirmationEmail = async (userEmail, subject, htmlContent, attachments) => {
   try {
     const mailOptions = {
-      from: process.env.EMAIL_USER,
+      from: `BusGo <${process.env.EMAIL_USER}>`,
       to: userEmail,
       subject: subject,
       html: htmlContent,
