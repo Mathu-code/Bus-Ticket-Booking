@@ -167,7 +167,10 @@ export const sendOtp = async (req, res) => {
   if (!email) return res.status(400).json({ msg: "Email is required" });
 
   const user = await User.findOne({ email });
-  if (!user) return res.status(200).json({ msg: "If this email is registered, you will receive an OTP." });
+  if (!user) {
+    // Tell the frontend there's no such user
+    return res.status(404).json({ msg: "No account found with this email." });
+  }
 
   // Generate OTP
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -179,24 +182,25 @@ export const sendOtp = async (req, res) => {
   const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
-      user: "mathumathuran27@gmail.com", // use your gmail/app-password
-      pass: "cgue leum hghr hhqd"
-    }
+      user: "mathumathuran27@gmail.com", // your gmail or app password
+      pass: "cgue leum hghr hhqd",
+    },
   });
 
   await transporter.sendMail({
-    from: '"BusGo" <yourgmail@gmail.com>',
+    from: '"BusGo" <support@busgo.com>',
     to: email,
     subject: "BusGo Password Reset OTP",
     html: `
       <h2>OTP for Password Reset</h2>
       <p>Your OTP is: <b>${otp}</b></p>
       <p>This OTP is valid for 10 minutes.</p>
-    `
+    `,
   });
 
   return res.status(200).json({ msg: "OTP sent to your email address." });
 };
+
 
 // Verify OTP and return token
 export const verifyOtp = async (req, res) => {
