@@ -6,7 +6,7 @@ export const generateBookingPdf = (bookingDetails) => { // Removed 'stream' para
   doc.fontSize(28)
      .font('Helvetica-Bold')
      .fillColor('#333')
-     .text('BusGo - Bus Booking Ticket Confirmation', { align: 'center' });
+     .text('BusGo - Bus Ticket Confirmation', { align: 'center' });
   doc.moveDown(1.5);
 
   doc.fontSize(16)
