@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux"; // Import useSelector to get logged-in user info
 
 export default function AdminUsers() {
   const [users, setUsers] = useState([]);
@@ -8,6 +9,15 @@ export default function AdminUsers() {
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState(""); // New state for search query
   const navigate = useNavigate();
+
+  // Get logged-in user's ID and isAdmin status from Redux (or localStorage)
+  // Assuming your Redux store has an 'auth' slice with a 'user' object.
+  // If not using Redux, you would parse from localStorage.getItem('user')
+  const { user: loggedInUser } = useSelector((state) => state.auth);
+  const loggedInUserId = loggedInUser?._id;
+  // eslint-disable-next-line no-unused-vars
+  const loggedInUserIsAdmin = loggedInUser?.isAdmin;
+
 
   const fetchUsers = async () => {
     try {
@@ -27,7 +37,7 @@ export default function AdminUsers() {
           search: searchQuery, // Send the search query
         }
       };
-      const response = await axios.get('http://localhost:5000/api/admin/users', config);
+      const response = await axios.get('http://localhost:5000/api/auth/admin/users', config);
       setUsers(response.data);
     } catch (err) {
       console.error("Error fetching users:", err);
@@ -50,6 +60,7 @@ export default function AdminUsers() {
   }, [searchQuery]); // Rerun fetchUsers when searchQuery changes
 
   const handleDeleteUser = async (userId) => {
+    // Optional: Add a check here if an admin tries to delete themselves, though usually this is handled server-side.
     if (window.confirm("Are you sure you want to delete this user? This action cannot be undone.")) {
       try {
         const token = localStorage.getItem('token');
@@ -58,7 +69,7 @@ export default function AdminUsers() {
             Authorization: `Bearer ${token}`,
           },
         };
-        await axios.delete(`http://localhost:5000/api/admin/users/${userId}`, config);
+        await axios.delete(`http://localhost:5000/api/auth/admin/users/${userId}`, config);
         // Filter out the deleted user from the current state
         setUsers(users.filter((user) => user._id !== userId));
         alert("User deleted successfully!");
@@ -70,6 +81,12 @@ export default function AdminUsers() {
   };
 
   const handleToggleAdminStatus = async (userId, currentStatus) => {
+    // Prevent an admin from demoting themselves
+    if (userId === loggedInUserId && currentStatus === true) { // If it's the logged-in user AND they are currently an admin
+      alert("An admin cannot demote themselves. Another admin must change your status.");
+      return; // Stop the function execution
+    }
+
     try {
       const token = localStorage.getItem('token');
       const config = {
@@ -79,7 +96,7 @@ export default function AdminUsers() {
         },
       };
       // Send PATCH request to toggle admin status
-      await axios.patch(`http://localhost:5000/api/admin/users/${userId}/toggle-admin`, { isAdmin: !currentStatus }, config);
+      await axios.patch(`http://localhost:5000/api/auth/admin/users/${userId}/toggle-admin`, { isAdmin: !currentStatus }, config);
       // Update the user's admin status in the local state
       setUsers(users.map(user => user._id === userId ? { ...user, isAdmin: !currentStatus } : user));
       alert("User admin status updated!");
@@ -145,6 +162,8 @@ export default function AdminUsers() {
                         className={`text-white px-3 py-1 rounded-md text-xs ${
                           user.isAdmin ? "bg-orange-500 hover:bg-orange-600" : "bg-blue-500 hover:bg-blue-600"
                         }`}
+                        // Optionally disable button if it's the logged-in admin trying to demote themselves
+                        disabled={user._id === loggedInUserId && user.isAdmin}
                       >
                         {user.isAdmin ? "Remove Admin" : "Make Admin"}
                       </button>

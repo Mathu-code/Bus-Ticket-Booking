@@ -97,7 +97,7 @@ export const updateUser = async (req, res) => {
       user.name = req.body.name || user.name;
       user.email = req.body.email || user.email;
       // Admin status can only be updated by another admin, not self-demotion/promotion
-      if (req.body.isAdmin !== undefined && req.user._id.toString() !== user._id.toString()) {
+      if (req.body.isAdmin !== undefined && req.user.userId.toString() !== user._id.toString()) {
         user.isAdmin = req.body.isAdmin;
       }
 
@@ -125,7 +125,7 @@ export const deleteUser = async (req, res) => {
 
     if (user) {
       // Prevent admin from deleting themselves
-      if (req.user._id.toString() === user._id.toString()) {
+      if (req.user.userId.toString() === user._id.toString()) {
         return res.status(400).json({ msg: 'Cannot delete yourself' });
       }
       await user.deleteOne(); // Use deleteOne() for Mongoose 6+
@@ -147,7 +147,7 @@ export const toggleAdminStatus = async (req, res) => {
 
     if (user) {
       // Prevent admin from changing their own admin status via this endpoint
-      if (req.user._id.toString() === user._id.toString()) {
+      if (req.user.userId.toString() === user._id.toString()) {
         return res.status(400).json({ msg: 'Cannot change your own admin status via this endpoint' });
       }
       user.isAdmin = !user.isAdmin;
