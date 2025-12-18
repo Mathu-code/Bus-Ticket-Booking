@@ -40,6 +40,7 @@ export default function AdminBusEdit() {
         
         // Format date and time for input fields
         const fetchedBus = response.data;
+        // Ensure date is in YYYY-MM-DD format for input[type="date"]
         const formattedDate = fetchedBus.date ? new Date(fetchedBus.date).toISOString().split('T')[0] : '';
         const formattedTime = fetchedBus.departureTime || '';
 
@@ -71,18 +72,51 @@ export default function AdminBusEdit() {
     }));
   };
 
+  // Helper function to get today's date in YYYY-MM-DD format
+  const getTodayDate = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
     setError(null);
+
+    // Client-side date validation
+    const today = getTodayDate();
+    if (busData.date < today) {
+        setError("The bus date cannot be in the past.");
+        setSubmitting(false);
+        return;
+    }
 
     // Prepare data for submission, ensuring numbers are numbers
     const dataToSend = {
       ...busData,
       totalSeats: Number(busData.totalSeats),
       price: Number(busData.price),
-      availableSeats: Number(busData.availableSeats), // Ensure availableSeats is also a number
+      // The backend should calculate availableSeats based on totalSeats and bookedSeats.
+      // If 'availableSeats' is still a stored field in your backend model, you'll need to decide
+      // how it's handled on update (e.g., re-calculated or manually updated).
+      // For now, sending it as a number as it was previously.
+      availableSeats: Number(busData.availableSeats), 
     };
+
+    // Client-side validation for business rules
+    if (dataToSend.totalSeats > 50) {
+      setError("Total seats cannot exceed 50.");
+      setSubmitting(false);
+      return;
+    }
+    if (dataToSend.price < 0) {
+      setError("Price cannot be less than 0.");
+      setSubmitting(false);
+      return;
+    }
 
     try {
       const token = localStorage.getItem('token');
@@ -157,6 +191,7 @@ export default function AdminBusEdit() {
             onChange={handleChange}
             required
             min="1"
+            max="50" // Added max attribute for total seats
             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
           />
         </div>
@@ -200,6 +235,7 @@ export default function AdminBusEdit() {
             value={busData.date}
             onChange={handleChange}
             required
+            min={getTodayDate()} // Added min attribute to restrict past dates
             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
           />
         </div>

@@ -54,6 +54,13 @@ export default function MyBookings() {
     try {
       const doc = new jsPDF();
 
+      // Format date for display in PDF and QR
+      const formattedDepartureDate = booking.bus?.date 
+        ? new Date(booking.bus.date).toLocaleDateString('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }) 
+        : "-";
+      const fullDepartureDateTime = `${formattedDepartureDate} ${booking.bus?.departureTime || "-"}`;
+
+
       // Add logo (small, top-left)
       try {
         const logo = await toDataUrl("/Bus1.jpg"); // Use your logo path here
@@ -73,7 +80,8 @@ export default function MyBookings() {
       doc.text(`Booking ID: ${booking._id}`, 20, y); y += 10;
       doc.text(`Bus Name: ${booking.bus?.name || "-"}`, 20, y); y += 10;
       doc.text(`Route: ${booking.bus?.route || "-"}`, 20, y); y += 10;
-      doc.text(`Departure: ${booking.bus?.date || "-"} ${booking.bus?.departureTime || "-"}`, 20, y); y += 10;
+      // Use the formatted date and time here
+      doc.text(`Departure: ${fullDepartureDateTime}`, 20, y); y += 10;
       doc.text(`Seat No: ${booking.seats?.join(", ")}`, 20, y); y += 10;
       doc.text(`Amount: Rs.${booking.amount}`, 20, y); y += 10;
       doc.text(`Status: ${booking.status}`, 20, y); y += 10;
@@ -85,7 +93,7 @@ BusGo Ticket
 Booking ID: ${booking._id}
 Bus Name: ${booking.bus?.name || "-"}
 Route: ${booking.bus?.route || "-"}
-Departure: ${booking.bus?.date || "-"} ${booking.bus?.departureTime || "-"}
+Departure: ${fullDepartureDateTime}
 Seat No: ${booking.seats?.join(", ") || "-"}
 Amount: Rs.${booking.amount}
 Status: ${booking.status}
@@ -108,10 +116,12 @@ Booked On: ${new Date(booking.createdAt).toLocaleString()}
         body: [
           [1, "Bus Name", booking.bus?.name || "-"],
           [2, "Route", booking.bus?.route || "-"],
-          [3, "Seat No", booking.seats?.join(", ") || "-"],
-          [4, "Amount", `Rs.${booking.amount}`],
-          [5, "Status", booking.status],
-          [6, "Booked On", new Date(booking.createdAt).toLocaleString()]
+          [3, "Departure Date", formattedDepartureDate],
+          [4, "Departure Time", booking.bus?.departureTime || "-"],
+          [5, "Seat No", booking.seats?.join(", ") || "-"],
+          [6, "Amount", `Rs.${booking.amount}`],
+          [7, "Status", booking.status],
+          [8, "Booked On", new Date(booking.createdAt).toLocaleString()]
         ],
       });
 
@@ -142,6 +152,7 @@ Booked On: ${new Date(booking.createdAt).toLocaleString()}
               <th className="p-4 text-left">Amount</th>
               <th className="p-4 text-left">Status</th>
               <th className="p-4 text-left">Date</th>
+              <th className="p-4 text-left">Time</th> {/* Added Time column */}
               <th className="p-4 text-left">Ticket</th>
             </tr>
           </thead>
@@ -154,7 +165,12 @@ Booked On: ${new Date(booking.createdAt).toLocaleString()}
                 <td className="border-b p-4">Rs.{b.amount}</td>
                 <td className="border-b p-4">{b.status}</td>
                 <td className="border-b p-4">
-                  {new Date(b.createdAt).toLocaleDateString()}
+                  {/* Format bus date to show only date part */}
+                  {b.bus?.date ? new Date(b.bus.date).toLocaleDateString('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }) : "-"}
+                </td>
+                <td className="border-b p-4">
+                  {/* Display departure time */}
+                  {b.bus?.departureTime || "-"}
                 </td>
                 <td className="border-b p-4">
                   <button

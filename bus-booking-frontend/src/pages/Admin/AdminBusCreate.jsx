@@ -4,14 +4,13 @@ import axios from "axios"; // Assuming axios is installed and correctly imported
 
 export default function AdminBusCreate() {
   const [busData, setBusData] = useState({
-    name: "",          // Renamed 'name' to 'number' to match backend Bus.number
-    route: "",           // Matches backend Bus.route
-    status: "Active",    // Matches backend Bus.status, with a default value
-    price: "",           // NEW: Required by backend
-    totalSeats: "",      // NEW: Required by backend (replaces 'capacity' from previous versions for clarity)
-    // availableSeats will be set to totalSeats on submission, not a separate input for creation
-    date: "",            // NEW: Required by backend
-    departureTime: "",   // NEW: Required by backend
+    name: "",
+    route: "",
+    status: "Active",
+    price: "",
+    totalSeats: "",
+    date: "",
+    departureTime: "",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -25,10 +24,27 @@ export default function AdminBusCreate() {
     }));
   };
 
+  // Helper function to get today's date in YYYY-MM-DD format
+  const getTodayDate = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+
+    // Client-side date validation
+    const today = getTodayDate();
+    if (busData.date < today) {
+        setError("The bus date cannot be in the past.");
+        setLoading(false);
+        return;
+    }
 
     // Prepare data for submission, ensuring numbers are numbers and setting availableSeats
     const dataToSend = {
@@ -38,11 +54,23 @@ export default function AdminBusCreate() {
       availableSeats: Number(busData.totalSeats), // On creation, available seats are usually all total seats
     };
 
-    // Basic client-side validation (optional, backend will also validate)
+    // Client-side validation for business rules
+    if (dataToSend.totalSeats > 50) {
+      setError("Total seats cannot exceed 50.");
+      setLoading(false);
+      return;
+    }
+    if (dataToSend.price < 0) {
+      setError("Price cannot be less than 0.");
+      setLoading(false);
+      return;
+    }
+
+    // Basic client-side validation for required fields
     for (const key in dataToSend) {
       // Skip availableSeats in this check since it's derived
       if (key !== 'availableSeats' && (dataToSend[key] === "" || dataToSend[key] === null || dataToSend[key] === undefined)) {
-        setError(`Please fill in the ${key} field.`);
+        setError(`Please fill in the ${key.replace(/([A-Z])/g, ' $1').toLowerCase()} field.`); // Format key for user message
         setLoading(false);
         return;
       }
@@ -117,6 +145,7 @@ export default function AdminBusCreate() {
             onChange={handleChange}
             required
             min="1"
+            max="50" // Added max attribute for total seats
             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
           />
         </div>
@@ -130,7 +159,7 @@ export default function AdminBusCreate() {
             value={busData.price}
             onChange={handleChange}
             required
-            min="0"
+            min="0" // min attribute for price
             step="0.01" // Allows for decimal prices
             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
           />
@@ -145,6 +174,7 @@ export default function AdminBusCreate() {
             value={busData.date}
             onChange={handleChange}
             required
+            min={getTodayDate()} // Added min attribute to restrict past dates
             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
           />
         </div>

@@ -28,6 +28,7 @@ export default function BusSearch() {
       return;
     }
     try {
+      // Fetch all buses to get unique routes for suggestions
       const res = await axios.get("http://localhost:5000/api/buses");
       const uniqueRoutes = [...new Set(res.data.map(bus => bus.route))];
       const filtered = uniqueRoutes.filter(r =>
@@ -59,12 +60,14 @@ export default function BusSearch() {
     try {
       const params = {};
       if (route) params.route = route;
-      if (date) params.date = date;
+      // Ensure date is sent in YYYY-MM-DD format if present
+      if (date) params.date = date; 
       const res = await axios.get("http://localhost:5000/api/buses", { params });
       setBuses(res.data);
       if (!res.data.length) setError("No buses found for your search.");
-    } catch {
-      setError("Failed to fetch buses.");
+    } catch (err) {
+      console.error("Failed to fetch buses:", err);
+      setError("Failed to fetch buses. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -74,6 +77,15 @@ export default function BusSearch() {
     handleSearch();
     // eslint-disable-next-line
   }, []);
+
+  // Get today's date in YYYY-MM-DD format for min attribute on date input
+  const getTodayDate = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
 
   return (
     <div className="max-w-5xl mx-auto p-4">
@@ -89,7 +101,7 @@ export default function BusSearch() {
             onChange={handleRouteChange}
           />
           {showSuggestions && suggestions.length > 0 && (
-            <div className="absolute top-full left-0 right-0 bg-white border rounded z-10">
+            <div className="absolute top-full left-0 right-0 bg-white border rounded z-10 shadow-lg">
               {suggestions.map((s, i) => (
                 <div
                   key={i}
@@ -108,15 +120,16 @@ export default function BusSearch() {
           className="border p-2 rounded"
           value={date}
           onChange={e => setDate(e.target.value)}
+          min={getTodayDate()} // Set minimum date to today
         />
 
-        <button className="bg-blue-600 text-white px-4 rounded">
+        <button className="bg-blue-600 text-white px-4 rounded hover:bg-blue-700 transition">
           Search
         </button>
       </form>
 
-      {loading && <div>Loading...</div>}
-      {error && <div className="text-red-600">{error}</div>}
+      {loading && <div className="text-center py-4 text-gray-600">Loading...</div>}
+      {error && <div className="text-red-600 text-center py-4">{error}</div>}
 
       {/* Bus Cards */}
       {buses.map(bus => (
@@ -157,7 +170,8 @@ export default function BusSearch() {
           {/* Info */}
           <div className="flex-1 flex flex-col justify-center">
             <div className="font-bold text-xl mb-1">{bus.route}</div>
-            <div>Date: {bus.date}</div>
+            {/* Format date for display */}
+            <div>Date: {new Date(bus.date).toLocaleDateString('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' })}</div>
             <div>Time: {bus.departureTime}</div>
             <div>Bus Type: {bus.busType || "Normal"}</div>
           </div>
@@ -168,7 +182,7 @@ export default function BusSearch() {
               Rs. {formatCurrency(bus.price)}
             </div>
             <div className="text-orange-600 font-semibold mb-2">
-              Available Seats:{bus.availableSeats}
+              Available Seats: {bus.availableSeats}
             </div>
             <button
               className="bg-orange-500 text-white px-5 py-2 rounded hover:bg-orange-600 transition font-semibold"

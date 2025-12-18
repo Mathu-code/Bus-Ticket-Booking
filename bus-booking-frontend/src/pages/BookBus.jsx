@@ -81,7 +81,8 @@ export default function BookBus() {
         {/* Info left */}
         <div className="flex-1 flex flex-col justify-center">
           <div className="font-bold text-xl mb-1">{bus.route}</div>
-          <div>Date: {bus.date}</div>
+          {/* Format date for display */}
+          <div>Date: {new Date(bus.date).toLocaleDateString('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' })}</div>
           <div>Time: {bus.departureTime}</div>
           <div>Bus Type: {bus.busType || "Normal"}</div>
         </div>
